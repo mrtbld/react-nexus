@@ -76,14 +76,17 @@ function prepare(element, context = {}) {
       return [null, context];
     }
     const { type, props } = element;
+
     // Native element
     if(typeof type === 'string') {
       return [props.children, context];
     }
+
     // Function component (new in react 0.14.x)
     if(!isExtensionOf(type, React.Component)) {
       return [type(props), context];
     }
+
     // Composite element
     let inst = null;
     return satisfy(element)

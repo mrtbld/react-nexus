@@ -6,7 +6,7 @@ function pure(Component) {
   }
   return class extends Component {
     shouldComponentUpdate(...args) {
-      return pureShouldComponentUpdate.apply(this, args);
+      return Reflect.apply(pureShouldComponentUpdate, this, args);
     }
   };
 }

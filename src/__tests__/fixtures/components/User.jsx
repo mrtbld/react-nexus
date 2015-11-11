@@ -1,7 +1,8 @@
-import React from 'react';
-import { T, propType, schemas } from '../types';
+import React, { PropTypes } from 'react';
 
 import { inject, pure, isPending, lastErrorOf, lastValueOf, LocalFlux, HTTPFlux } from '../../../';
+
+const USERS_REFRESH_PERIOD = 5000;
 
 // Helper components
 
@@ -33,7 +34,7 @@ function UserProfile({ user, following, followUser }) {
 
 function FollowButton({ following, onClick }) {
   if(!following || following.isPending()) {
-    return <button onClick={onClick} disabled={following && following.isPending()}>
+    return <button disabled={following && following.isPending()} onClick={onClick} >
       Follow user
     </button>;
   }
@@ -42,6 +43,13 @@ function FollowButton({ following, onClick }) {
   }
   return <p>{following.value().toString()}</p>;
 }
+
+const userPropType = PropTypes.shape({
+  userId: PropTypes.string.isRequired,
+  userName: PropTypes.string.isRequired,
+  profilePicture: PropTypes.string.isRequired,
+  follows: PropTypes.arrayOf(PropTypes.string).isRequired,
+});
 
 @inject(({ local }) => ({
   authToken: local.get('/authToken'),
@@ -59,14 +67,16 @@ function FollowButton({ following, onClick }) {
 export default class User extends React.Component {
   static displayName = 'User';
   static propTypes = {
-    authToken: propType(T.String()),
-    fontSize: propType(T.oneOf(T.String(), T.Number())),
-    http: React.PropTypes.instanceOf(HTTPFlux),
-    local: React.PropTypes.instanceOf(LocalFlux),
-    me: propType(schemas.user),
-    user: propType(schemas.user),
-    userId: React.PropTypes.string.isRequired,
-    users: propType(T.shape({ items: T.Array({ type: schemas.user }) })),
+    authToken: PropTypes.string.isRequired,
+    fontSize: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    http: PropTypes.instanceOf(HTTPFlux).isRequired,
+    local: PropTypes.instanceOf(LocalFlux).isRequired,
+    me: userPropType.isRequired,
+    user: userPropType.isRequired,
+    userId: PropTypes.string.isRequired,
+    users: PropTypes.shape({
+      items: PropTypes.arrayOf(userPropType),
+    }).isRequired,
   };
 
   constructor(props, context) {
@@ -77,7 +87,7 @@ export default class User extends React.Component {
 
   componentDidMount() {
     const { http } = this.props;
-    this.refreshUsers = setInterval(() => http.dispatch('refresh users'), 5000);
+    this.refreshUsers = setInterval(() => http.dispatch('refresh users'), USERS_REFRESH_PERIOD);
   }
 
   componentWillUnmount() {
@@ -107,9 +117,9 @@ export default class User extends React.Component {
     const { following } = this.state;
     return <div style={{ fontSize: lastValueOf(fontSize) }}>
       <Users users={users} />
-      <UserProfile user={user} following={following} followUser={() => this.followUser()} />
+      <UserProfile followUser={() => this.followUser()} following={following} user={user} />
       <div>modify font size:
-        <input type='text' onChange={(e) => this.updateFontSize(e)} value={lastValueOf(fontSize)} />
+        <input onChange={(e) => this.updateFontSize(e)} type='text' value={lastValueOf(fontSize)} />
       </div>
     </div>;
   }

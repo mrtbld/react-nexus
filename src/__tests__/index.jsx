@@ -16,16 +16,20 @@ import Nexus from '../';
 import secret from './fixtures/secret';
 import User from './fixtures/components/User';
 
+const TEST_PORT = 8888;
+const FONT_SIZE = 12;
+const MAXIMUM_PING = 100;
+
 describe('Nexus', () => {
   let server;
-  before(() => server = app.listen(8888));
+  before(() => server = app.listen(TEST_PORT));
   it('.prepare', (done) => {
     const authToken = 'E47Exd7RdDds';
     const xDebugToken = jwt.sign(Date.now(), secret);
     const http = new CustomHTTPFlux('http://localhost:8888', { additionalHeaders: { 'X-Debug-Token': xDebugToken } });
     const local = new CustomLocalFlux();
     local.set('/authToken', authToken);
-    local.set('/fontSize', 12);
+    local.set('/fontSize', FONT_SIZE);
     const nexus = { http, local };
     const tree = <Nexus.Context {...nexus}>
       <User userId='CategoricalDude' />
@@ -51,7 +55,7 @@ describe('Nexus', () => {
           const versions = fetched(path, params);
           should(versions).be.an.Array().which.has.length(1);
           const [[err, val, date]] = versions;
-          should(Date.now() - date).be.within(0, 100);
+          should(Date.now() - date).be.within(0, MAXIMUM_PING);
           should(err || val).have.property('_debug').which.eql({ xDebugToken });
           return fn(err, val, date);
         }
@@ -81,11 +85,13 @@ describe('Nexus', () => {
   });
   it('.local.dispatch', (done) => {
     const local = new CustomLocalFlux();
-    local.set('/fontSize', 18);
-    local.dispatch('set font size', { fontSize: 42 })
+    const ORIGINAL_FONT_SIZE = 18;
+    const NEW_FONT_SIZE = 42;
+    local.set('/fontSize', ORIGINAL_FONT_SIZE);
+    local.dispatch('set font size', { fontSize: NEW_FONT_SIZE })
     .then(() => {
       should(_.map(local.get('/fontSize').versions(), ([err, val]) => [err, val]))
-      .be.eql([[null, 18], [null, 42]]);
+      .be.eql([[null, ORIGINAL_FONT_SIZE], [null, NEW_FONT_SIZE]]);
       done(null);
     })
     .catch((err) => done(err));

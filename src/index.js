@@ -12,7 +12,6 @@ import preparable from './decorators/preparable';
 import prepare from './prepare';
 import pure from './decorators/pure';
 import toPayload from './utils/toPayload';
-import types from './utils/types';
 
 export default {
   Context,
@@ -29,5 +28,4 @@ export default {
   prepare,
   pure,
   toPayload,
-  types,
 };

@@ -4,6 +4,10 @@ import jwt from 'jsonwebtoken';
 
 import secret from './secret';
 
+const HTTP_CODE_UNAUTHORIZED = 401;
+const HTTP_CODE_NOT_FOUND = 404;
+const HTTP_CODE_INTERNAL_SERVER_ERROR = 500;
+
 export const users = [
   {
     userId: 'CategoricalDude',
@@ -43,11 +47,11 @@ function getUserFromToken(authToken) {
 function requireValidToken(req, res, next) {
   const authToken = getAuthToken(req);
   if(!authToken) {
-    return res.status(401).send({ err: 'Requires valid authToken' });
+    return res.status(HTTP_CODE_UNAUTHORIZED).send({ err: 'Requires valid authToken' });
   }
   const user = getUserFromToken(authToken);
   if(!user) {
-    return res.status(500).send({ err: 'No user found with given token' });
+    return res.status(HTTP_CODE_INTERNAL_SERVER_ERROR).send({ err: 'No user found with given token' });
   }
   req.user = user;
   next();
@@ -60,23 +64,23 @@ function debug(req, res, next) {
   }
   return jwt.verify(token, secret, (err) => {
     if(err) {
-      return res.status(401).send({ err: 'Invalid X-Debug-Token' });
+      return res.status(HTTP_CODE_UNAUTHORIZED).send({ err: 'Invalid X-Debug-Token' });
     }
     const originalSend = res.send;
     res.send = function debugSend(obj) {
       if(!_.isObject(obj)) {
-        return originalSend.call(this, obj);
+        return Reflect.apply(originalSend, this, [obj]);
       }
-      return originalSend.call(this, Object.assign({}, obj, {
+      return Reflect.apply(originalSend, this, [Object.assign({}, obj, {
         _debug: { xDebugToken: token },
-      }));
+      })]);
     };
     next();
   });
 }
 
 function notFound(req, res) {
-  res.status(404).send({ err: 'Unknown route' });
+  res.status(HTTP_CODE_NOT_FOUND).send({ err: 'Unknown route' });
 }
 
 export default express()
@@ -87,7 +91,7 @@ export default express()
   .get('/users/:userId', (req, res) => {
     const user = _.find(users, ({ userId }) => userId === req.params.userId);
     if(!users) {
-      return res.status(404).send({ err: 'No such user' });
+      return res.status(HTTP_CODE_NOT_FOUND).send({ err: 'No such user' });
     }
     return res.send(user);
   })
@@ -97,7 +101,7 @@ export default express()
   .post('/users/:userId/follow', requireValidToken, (req, res) => {
     const userToFollow = _.find(users, ({ userId }) => userId === req.params.userId);
     if(!userToFollow) {
-      return res.status(404).send({ err: 'No such user' });
+      return res.status(HTTP_CODE_NOT_FOUND).send({ err: 'No such user' });
     }
     const { follows } = req.user;
     if(!_.find(follows, (userId) => userId === req.params.userId)) {

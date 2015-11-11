@@ -3,3 +3,4 @@ dist
 *.pid
 *.lock
 npm-debug.log
+dist

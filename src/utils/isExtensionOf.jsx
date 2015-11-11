@@ -5,7 +5,7 @@ export default function isExtensionOf(A, B) {
   if(typeof A !== 'function') {
     return false;
   }
-  const protoOfA = Object.getPrototypeOf(A);
+  const protoOfA = Reflect.getPrototypeOf(A);
   if(typeof B !== 'function') {
     return protoOfA === B;
   }

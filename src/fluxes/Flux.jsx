@@ -36,6 +36,7 @@ class Flux {
       return flux.versions(params);
     }
   };
+
   /**
    * Create a new Flux instance based on a previous call to serialize()
    * @param {Object} Previous return value of serialize()

@@ -24,10 +24,12 @@ function destructureProps(props) {
   };
 }
 
-@preparable((props) => {
+function prepare(props) {
   const { bindings } = destructureProps(props);
   return Promise.all(_.map(bindings, (binding) => binding.populate()));
-})
+}
+
+@preparable(prepare)
 class Injector extends React.Component {
   static displayName = 'Nexus.Injector';
   static propTypes = {
@@ -50,6 +52,23 @@ class Injector extends React.Component {
     _.each(bindings, (binding, key) => this.subscribe(binding, key));
   }
 
+  componentWillReceiveProps(nextProps) {
+    const { bindings: prevBindings } = destructureProps(this.props);
+    const { bindings: nextBindings } = destructureProps(nextProps);
+    const [removed, added] = diff(prevBindings, nextBindings);
+    _.each(removed, (binding, key) => this.unsubscribe(key));
+    _.each(added, (binding, key) => this.subscribe(binding, key));
+  }
+
+  shouldComponentUpdate(...args) {
+    return Reflect.apply(this.props.shouldComponentUpdate, this, args);
+  }
+
+  componentWillUnmount() {
+    const { bindings } = destructureProps(this.props);
+    _.each(Object.keys(bindings), (key) => this.unsubscribe(key));
+  }
+
   refreshState(binding, key) {
     this.setState({
       [key]: binding.versions(),
@@ -62,7 +81,7 @@ class Injector extends React.Component {
       this.setState({
         [key]: void 0,
       });
-      delete this.unobserve[key];
+      Reflect.deleteProperty(this.unobserve, key);
     }
   }
 
@@ -70,23 +89,6 @@ class Injector extends React.Component {
     this.unsubscribe(key);
     this.refreshState(binding, key);
     this.unobserve[key] = binding.observe(() => this.refreshState(binding, key));
-  }
-
-  componentWillReceiveProps(nextProps) {
-    const { bindings: prevBindings } = destructureProps(this.props);
-    const { bindings: nextBindings } = destructureProps(nextProps);
-    const [removed, added] = diff(prevBindings, nextBindings);
-    _.each(removed, (binding, key) => this.unsubscribe(key));
-    _.each(added, (binding, key) => this.subscribe(binding, key));
-  }
-
-  componentWillUnmount() {
-    const { bindings } = destructureProps(this.props);
-    _.each(Object.keys(bindings), (key) => this.unsubscribe(key));
-  }
-
-  shouldComponentUpdate(...args) {
-    return this.props.shouldComponentUpdate.apply(this, ...args);
   }
 
   render() {
