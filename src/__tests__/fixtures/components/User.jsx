@@ -1,6 +1,7 @@
 import React, { PropTypes } from 'react';
+import _ from 'lodash';
 
-import { inject, pure, isPending, lastErrorOf, lastValueOf, LocalFlux, HTTPFlux } from '../../../';
+import { inject, isPending, lastErrorOf, lastValueOf, LocalFlux, HTTPFlux } from '../../../';
 
 const USERS_REFRESH_PERIOD = 5000;
 
@@ -51,20 +52,20 @@ const userPropType = PropTypes.shape({
   follows: PropTypes.arrayOf(PropTypes.string).isRequired,
 });
 
-@inject(({ local }) => ({
-  authToken: local.get('/authToken'),
-  fontSize: local.get('/fontSize'),
-}))
-@inject(({ http, local }, { userId, authToken }) => ({
-  error: http.get('/error'),
-  http,
-  local,
-  me: http.get(`/me`, { query: { authToken: lastValueOf(authToken) } }),
-  user: http.get(`/users/${userId}`),
-  users: http.get(`/users`),
-}))
-@pure
-export default class User extends React.Component {
+export default _.flow(
+  inject(({ local }) => ({
+    authToken: local.get('/authToken'),
+    fontSize: local.get('/fontSize'),
+  })),
+  inject(({ http, local }, { userId, authToken }) => ({
+    error: http.get('/error'),
+    http,
+    local,
+    me: http.get(`/me`, { query: { authToken: lastValueOf(authToken) } }),
+    user: http.get(`/users/${userId}`),
+    users: http.get(`/users`),
+  }))
+)(class User extends React.Component {
   static displayName = 'User';
   static propTypes = {
     authToken: PropTypes.string.isRequired,
@@ -123,4 +124,4 @@ export default class User extends React.Component {
       </div>
     </div>;
   }
-}
+});

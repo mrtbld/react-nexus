@@ -1,9 +1,12 @@
+import _ from 'lodash';
+import babel from 'gulp-babel';
 import eslint from 'gulp-eslint';
 import gulp from 'gulp';
 import mocha from 'gulp-mocha';
+import path from 'path';
 import plumber from 'gulp-plumber';
 import rimraf from 'rimraf';
-import path from 'path';
+import sourcemaps from 'gulp-sourcemaps';
 import webpack from 'webpack-stream';
 
 import webpackBrowserDev from '../webpack/browser-dev';
@@ -11,18 +14,26 @@ import webpackBrowserProd from '../webpack/browser-prod';
 import webpackNodeDev from '../webpack/node-dev';
 import webpackNodeProd from '../webpack/node-prod';
 
+const webpackConfig = {
+  browser: {
+    dev: webpackBrowserDev,
+    prod: webpackBrowserProd,
+  },
+  node: {
+    dev: webpackNodeDev,
+    prod: webpackNodeProd,
+  },
+};
+
+const PLATFORMS = Object.keys(webpackConfig);
+const ENVS = Object.keys(webpackConfig[PLATFORMS[0]]);
+
 const exts = ['js', 'jsx'];
 const src = 'src';
-const entry = path.join(src, 'index.js');
 const sources = exts.map((ext) => path.join(src, '**', `*.${ext}`));
-const dist = 'dist';
-const browser = path.join(dist, 'browser');
-const node = path.join(dist, 'node');
-const __tests__ = '__tests__';
-const tests = exts.map((ext) => path.join(src, __tests__, '**', `*.${ext}`));
 
 gulp.task('clean', (done) =>
-  rimraf(dist, done)
+  rimraf('dist', done)
 );
 
 gulp.task('lint', () =>
@@ -32,39 +43,36 @@ gulp.task('lint', () =>
   .pipe(eslint.format())
 );
 
-gulp.task('build-browser-dev', ['clean', 'lint'], () =>
-  gulp.src(entry)
-  .pipe(plumber())
-  .pipe(webpack(webpackBrowserDev))
-  .pipe(gulp.dest(browser))
+PLATFORMS.forEach((platform) =>
+  ENVS.forEach((env) => {
+    gulp.task(`transpile-${platform}-${env}`, ['clean', 'lint'], () =>
+      gulp.src(sources)
+      .pipe(plumber())
+      .pipe(sourcemaps.init())
+      .pipe(babel({
+        presets: [`${__dirname}/../babel/${platform}-${env}`],
+      }))
+      .pipe(sourcemaps.write())
+      .pipe(gulp.dest(`dist/${platform}/${env}/src`))
+    );
+
+    gulp.task(`bundle-${platform}-${env}`, [`transpile-${platform}-${env}`], () =>
+      gulp.src(`dist/${platform}/${env}/src/index.js`)
+      .pipe(plumber())
+      .pipe(webpack(webpackConfig[platform][env]))
+      .pipe(gulp.dest(`dist/${platform}/${env}`))
+    );
+  })
 );
 
-gulp.task('build-browser-prod', ['clean', 'lint'], () =>
-  gulp.src(entry)
+gulp.task('bundle', _.flatten(
+  PLATFORMS.map((platform) => ENVS.map((env) => `bundle-${platform}-${env}`))
+));
+
+gulp.task('test', ['lint', 'bundle'], () =>
+  gulp.src(`dist/node/dev/src/**/__tests__/**/**`)
   .pipe(plumber())
-  .pipe(webpack(webpackBrowserProd))
-  .pipe(gulp.dest(browser))
-);
-
-gulp.task('build-node-dev', () =>
-  gulp.src(entry)
-  .pipe(plumber())
-  .pipe(webpack(webpackNodeDev))
-  .pipe(gulp.dest(node))
-);
-
-gulp.task('build-node-prod', () =>
-  gulp.src(entry)
-  .pipe(plumber())
-  .pipe(webpack(webpackNodeProd))
-  .pipe(gulp.dest(node))
-);
-
-gulp.task('build', ['test', 'build-node-dev', 'build-node-prod', 'build-browser-dev', 'build-browser-prod']);
-
-gulp.task('test', () =>
-  gulp.src(tests)
   .pipe(mocha())
 );
 
-gulp.task('default', ['build']);
+gulp.task('default', ['test']);

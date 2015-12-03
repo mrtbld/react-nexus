@@ -31,10 +31,12 @@ export default {
   plugins: [
     new webpack.optimize.DedupePlugin(),
     new webpack.optimize.OccurenceOrderPlugin(),
-    new webpack.optimize.UglifyJsPlugin({
-      compress: { warnings: false },
-      mangle: { except: ['GeneratorFunction'] },
-    }),
+
+    // ES2015 features are not supported yet by UglifyJS2, see https://github.com/mishoo/UglifyJS2/issues/448
+    // new webpack.optimize.UglifyJsPlugin({
+    //   compress: { warnings: false },
+    //   mangle: { except: ['GeneratorFunction'] },
+    // }),
   ],
   resolve: {
     extensions: ['', '.js', '.jsx'],

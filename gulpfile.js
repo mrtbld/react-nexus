@@ -1,7 +1,6 @@
-require('source-map-support').install();
-require('babel-core/register')({
-  ignore: ['node_modules', 'dist'],
+require('source-map-support/register');
+require('babel-polyfill');
+require('babel-register')({
   presets: ['./config/babel/node-dev'],
-  sourceMaps: 'inline',
 });
 require('./config/gulp');

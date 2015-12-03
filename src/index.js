@@ -1,3 +1,4 @@
+import 'babel-polyfill';
 import Context from './components/Context';
 import Flux from './fluxes/Flux';
 import fromPayload from './utils/fromPayload';

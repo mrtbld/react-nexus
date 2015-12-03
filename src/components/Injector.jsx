@@ -29,8 +29,7 @@ function prepare(props) {
   return Promise.all(_.map(bindings, (binding) => binding.populate()));
 }
 
-@preparable(prepare)
-class Injector extends React.Component {
+class $Injector extends React.Component {
   static displayName = 'Nexus.Injector';
   static propTypes = {
     children: React.PropTypes.func.isRequired,
@@ -101,5 +100,7 @@ class Injector extends React.Component {
     return children(childProps);
   }
 }
+
+const Injector = preparable(prepare)($Injector);
 
 export default Injector;
